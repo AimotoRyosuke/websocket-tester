@@ -670,9 +670,9 @@
     </div>
     <div class="sidebar-section">
       <div class="section-hdr-row">
-        <div class="section-hdr">Saved Messages</div>
+        <div class="section-hdr">Message Templates</div>
       </div>
-      <div id="templateList"><p class="empty-msg">No saved messages</p></div>
+      <div id="templateList"><p class="empty-msg">No templates yet</p></div>
     </div>
     <div class="sidebar-section">
       <div class="section-hdr-row">
@@ -1094,7 +1094,7 @@ function confirmSave() {
 function renderTemplates() {
   const el = document.getElementById('templateList');
   if (!templates.length) {
-    el.innerHTML = '<p class="empty-msg">No saved messages</p>';
+    el.innerHTML = '<p class="empty-msg">No templates yet</p>';
     return;
   }
   el.innerHTML = templates.map((t, i) => `

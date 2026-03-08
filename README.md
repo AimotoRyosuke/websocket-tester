@@ -9,7 +9,7 @@ A lightweight, browser-based WebSocket testing tool for local development. No de
 - **Connection management** — Connect/disconnect with custom URL, optional headers panel (memo use)
 - **Message log** — Color-coded sent / received / system messages with millisecond timestamps
 - **JSON support** — Auto-detect and syntax-highlight JSON, one-click formatting
-- **Message templates** — Save frequently used messages and reload them with one click
+- **Message templates** — Save messages as templates and reload them with one click
 - **Auto send** — Automatically send messages at a configurable interval (useful for ping or load testing)
 - **Connection history** — Recently used URLs saved automatically
 - **Live reload** — Changes to `index.html` are reflected in the browser instantly (both Docker and Node.js)
@@ -60,11 +60,11 @@ Saving `public/index.html` automatically reloads the browser via Server-Sent Eve
 2. Click **Send** or press `Ctrl+Enter`
 3. Select **JSON** from the type selector to send JSON, or click **Format JSON** to pretty-print first
 
-### Save a Template
+### Message Templates
 
 1. Write a message in the composer
 2. Click **Save** and enter a name
-3. The template appears in the left sidebar — click it to load, `×` to delete
+3. The template appears under **Message Templates** in the sidebar — click it to load, `×` to delete
 
 ### Auto Send
 
