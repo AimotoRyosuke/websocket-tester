@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebSocket Tester</title>
+  <style>
+    /* ===== Variables ===== */
+    :root {
+      --c-bg:           #f1f5f9;
+      --c-surface:      #ffffff;
+      --c-surface-2:    #f8fafc;
+      --c-border:       #e2e8f0;
+      --c-text:         #1e293b;
+      --c-text-2:       #64748b;
+      --c-text-3:       #94a3b8;
+      --c-primary:      #6366f1;
+      --c-primary-h:    #4f46e5;
+      --c-success:      #10b981;
+      --c-warn:         #f59e0b;
+      --c-danger:       #ef4444;
+      /* log */
+      --c-sent-bg:      #eef2ff;
+      --c-sent-bd:      #818cf8;
+      --c-sent-lbl:     #4f46e5;
+      --c-recv-bg:      #ecfdf5;
+      --c-recv-bd:      #34d399;
+      --c-recv-lbl:     #059669;
+      --c-sys-bg:       #f8fafc;
+      --c-sys-bd:       #cbd5e1;
+      --c-sys-lbl:      #64748b;
+      /* layout */
+      --sidebar-w:      260px;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    [data-theme="dark"] {
+      --c-bg:           #0f172a;
+      --c-surface:      #1e293b;
+      --c-surface-2:    #162032;
+      --c-border:       #334155;
+      --c-text:         #f1f5f9;
+      --c-text-2:       #94a3b8;
+      --c-text-3:       #475569;
+      --c-sent-bg:      #1e1b4b;
+      --c-sent-bd:      #6366f1;
+      --c-sent-lbl:     #a5b4fc;
+      --c-recv-bg:      #064e3b;
+      --c-recv-bd:      #10b981;
+      --c-recv-lbl:     #6ee7b7;
+      --c-sys-bg:       #1e293b;
+      --c-sys-bd:       #334155;
+      --c-sys-lbl:      #64748b;
+    }
+
+    /* ===== Reset ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      background: var(--c-bg);
+      color: var(--c-text);
+      height: 100dvh;
+      display: flex;
+      overflow: hidden;
+      font-size: 14px;
+    }
+
+    /* ===== Scrollbar ===== */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--c-text-3); }
+
+    /* ===== Sidebar ===== */
+    .sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--c-surface);
+      border-right: 1px solid var(--c-border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-brand {
+      padding: 16px;
+      border-bottom: 1px solid var(--c-border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .brand-logo {
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.3);
+    }
+
+    .brand-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--c-text);
+      line-height: 1.3;
+    }
+
+    .brand-sub {
+      font-size: 10px;
+      color: var(--c-text-3);
+    }
+
+    .sidebar-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    .sidebar-section { margin-bottom: 20px; }
+
+    .section-hdr {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--c-text-3);
+      padding: 4px 4px 8px;
+    }
+
+    .empty-msg {
+      font-size: 12px;
+      color: var(--c-text-3);
+      font-style: italic;
+      padding: 2px 4px;
+    }
+
+    .history-item, .tpl-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.1s;
+      margin-bottom: 1px;
+    }
+
+    .history-item:hover, .tpl-item:hover { background: var(--c-surface-2); }
+
+    .history-url {
+      flex: 1;
+      font-size: 11px;
+      color: var(--c-text-2);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: var(--mono);
+    }
+
+    .history-item:hover .history-url { color: var(--c-text); }
+
+    .tpl-info { flex: 1; overflow: hidden; }
+
+    .tpl-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--c-text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tpl-preview {
+      font-size: 10px;
+      color: var(--c-text-3);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-top: 1px;
+    }
+
+    .item-del {
+      background: none;
+      border: none;
+      color: var(--c-text-3);
+      cursor: pointer;
+      font-size: 15px;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      opacity: 0;
+      transition: opacity 0.1s, color 0.1s;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .history-item:hover .item-del,
+    .tpl-item:hover .item-del { opacity: 1; }
+    .item-del:hover { color: var(--c-danger); }
+
+    /* ===== Main ===== */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    /* Top bar */
+    .topbar {
+      background: var(--c-surface);
+      border-bottom: 1px solid var(--c-border);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .topbar-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--c-text);
+    }
+
+    .btn-icon {
+      background: none;
+      border: 1px solid var(--c-border);
+      border-radius: 6px;
+      padding: 5px 8px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.1s;
+      color: var(--c-text-2);
+    }
+
+    .btn-icon:hover { background: var(--c-surface-2); }
+
+    /* Connection bar */
+    .conn-bar {
+      background: var(--c-surface);
+      border-bottom: 1px solid var(--c-border);
+      padding: 10px 16px;
+      flex-shrink: 0;
+    }
+
+    .url-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .input-url {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1.5px solid var(--c-border);
+      border-radius: 8px;
+      background: var(--c-bg);
+      color: var(--c-text);
+      font-size: 13px;
+      font-family: var(--mono);
+      outline: none;
+      transition: border-color 0.15s;
+      min-width: 0;
+    }
+
+    .input-url:focus { border-color: var(--c-primary); }
+    .input-url::placeholder { font-family: -apple-system, sans-serif; color: var(--c-text-3); }
+
+    /* Headers */
+    .headers-panel {
+      margin-top: 8px;
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .headers-panel.hidden { display: none; }
+
+    .headers-warning {
+      font-size: 11px;
+      color: var(--c-warn);
+      margin-bottom: 8px;
+      padding: 4px 8px;
+      background: rgba(245,158,11,0.08);
+      border-radius: 4px;
+      border-left: 2px solid var(--c-warn);
+    }
+
+    .hdr-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .input-hdr {
+      flex: 1;
+      padding: 5px 8px;
+      border: 1px solid var(--c-border);
+      border-radius: 6px;
+      background: var(--c-surface);
+      color: var(--c-text);
+      font-size: 12px;
+      outline: none;
+    }
+
+    .input-hdr:focus { border-color: var(--c-primary); }
+
+    .btn-rm {
+      background: none;
+      border: none;
+      color: var(--c-text-3);
+      cursor: pointer;
+      font-size: 18px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      line-height: 1;
+      flex-shrink: 0;
+      transition: color 0.1s;
+    }
+
+    .btn-rm:hover { color: var(--c-danger); }
+
+    .btn-add-hdr {
+      width: 100%;
+      padding: 5px;
+      background: none;
+      border: 1px dashed var(--c-border);
+      border-radius: 6px;
+      color: var(--c-text-3);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+
+    .btn-add-hdr:hover { border-color: var(--c-primary); color: var(--c-primary); }
+
+    /* Status bar */
+    .statusbar {
+      background: var(--c-surface);
+      border-bottom: 1px solid var(--c-border);
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      font-size: 11px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--c-text-3);
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+
+    .status-dot.connecting { background: var(--c-warn); animation: blink 0.7s ease-in-out infinite; }
+    .status-dot.open       { background: var(--c-success); }
+    .status-dot.closing    { background: var(--c-warn); animation: blink 0.7s ease-in-out infinite; }
+    .status-dot.closed     { background: var(--c-text-3); }
+
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.15; } }
+
+    .status-lbl {
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      transition: color 0.3s;
+    }
+
+    .status-lbl.connecting { color: var(--c-warn); }
+    .status-lbl.open       { color: var(--c-success); }
+    .status-lbl.closing    { color: var(--c-warn); }
+    .status-lbl.closed     { color: var(--c-text-3); }
+
+    .status-url {
+      color: var(--c-text-3);
+      font-family: var(--mono);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    .btn-clear {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--c-text-3);
+      font-size: 11px;
+      padding: 3px 6px;
+      border-radius: 4px;
+      transition: color 0.1s;
+      flex-shrink: 0;
+    }
+
+    .btn-clear:hover { color: var(--c-danger); }
+
+    /* Log area */
+    .log-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .log-placeholder {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--c-text-3);
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    .log-entry {
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      line-height: 1.5;
+      animation: fadeIn 0.15s ease;
+    }
+
+    @keyframes fadeIn { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform: translateY(0); } }
+
+    .log-entry.sent     { background: var(--c-sent-bg); border-left: 3px solid var(--c-sent-bd); }
+    .log-entry.received { background: var(--c-recv-bg); border-left: 3px solid var(--c-recv-bd); }
+    .log-entry.system   { background: var(--c-sys-bg);  border-left: 3px solid var(--c-sys-bd);  }
+
+    .log-entry-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .log-type {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .sent .log-type     { color: var(--c-sent-lbl); }
+    .received .log-type { color: var(--c-recv-lbl); }
+    .system .log-type   { color: var(--c-sys-lbl);  }
+
+    .log-time {
+      font-size: 10px;
+      color: var(--c-text-3);
+      font-family: var(--mono);
+    }
+
+    .log-body {
+      font-family: var(--mono);
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--c-text);
+    }
+
+    /* JSON syntax highlighting */
+    .jk    { color: #6366f1; }
+    .js    { color: #10b981; }
+    .jn    { color: #f59e0b; }
+    .jb    { color: #8b5cf6; }
+    .jnull { color: #94a3b8; }
+
+    /* Auto-send bar */
+    .autosend-bar {
+      background: var(--c-surface-2);
+      border-top: 1px solid var(--c-border);
+      padding: 7px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      font-size: 12px;
+    }
+
+    .autosend-lbl {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      color: var(--c-text-2);
+      font-weight: 500;
+      user-select: none;
+    }
+
+    .autosend-lbl input[type="checkbox"] { cursor: pointer; }
+
+    .input-interval {
+      width: 72px;
+      padding: 4px 8px;
+      border: 1px solid var(--c-border);
+      border-radius: 6px;
+      background: var(--c-surface);
+      color: var(--c-text);
+      font-size: 12px;
+      outline: none;
+      text-align: right;
+    }
+
+    .input-interval:focus { border-color: var(--c-primary); }
+
+    .interval-unit { color: var(--c-text-3); }
+
+    .autosend-running {
+      color: var(--c-success);
+      font-weight: 700;
+      font-size: 11px;
+      display: none;
+    }
+
+    /* Composer */
+    .composer {
+      background: var(--c-surface);
+      border-top: 1px solid var(--c-border);
+      padding: 12px 16px;
+      flex-shrink: 0;
+    }
+
+    .composer-textarea {
+      width: 100%;
+      min-height: 76px;
+      max-height: 180px;
+      padding: 8px 12px;
+      border: 1.5px solid var(--c-border);
+      border-radius: 8px;
+      background: var(--c-bg);
+      color: var(--c-text);
+      font-family: var(--mono);
+      font-size: 12px;
+      resize: vertical;
+      outline: none;
+      display: block;
+      transition: border-color 0.15s;
+    }
+
+    .composer-textarea:focus { border-color: var(--c-primary); }
+    .composer-textarea::placeholder { font-family: -apple-system, sans-serif; color: var(--c-text-3); }
+
+    .composer-actions {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .actions-left, .actions-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .select-type {
+      padding: 5px 8px;
+      border: 1px solid var(--c-border);
+      border-radius: 6px;
+      background: var(--c-surface);
+      color: var(--c-text);
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .save-inline {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .save-inline.hidden { display: none; }
+
+    .input-save-name {
+      padding: 5px 8px;
+      border: 1px solid var(--c-border);
+      border-radius: 6px;
+      background: var(--c-surface);
+      color: var(--c-text);
+      font-size: 12px;
+      outline: none;
+      width: 140px;
+    }
+
+    .input-save-name:focus { border-color: var(--c-primary); }
+
+    /* ===== Buttons ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .btn-primary { background: var(--c-primary); color: white; }
+    .btn-primary:hover:not(:disabled) { background: var(--c-primary-h); }
+
+    .btn-danger { background: var(--c-danger); color: white; }
+    .btn-danger:hover:not(:disabled) { background: #dc2626; }
+
+    .btn-success { background: var(--c-success); color: white; }
+    .btn-success:hover:not(:disabled) { background: #059669; }
+
+    .btn-warn { background: var(--c-warn); color: #1e293b; }
+    .btn-warn:hover:not(:disabled) { background: #d97706; }
+
+    .btn-accent { background: #a5b4fc; color: #1e1b4b; }
+    .btn-accent:hover:not(:disabled) { background: #818cf8; }
+
+    .btn-outline {
+      background: none;
+      border: 1px solid var(--c-border);
+      color: var(--c-text-2);
+    }
+    .btn-outline:hover { background: var(--c-surface-2); }
+
+    .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+
+    .btn-send {
+      padding: 8px 20px;
+      background: var(--c-success);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-send:hover { background: #059669; }
+  </style>
+</head>
+<body data-theme="light">
+
+<!-- ===== Sidebar ===== -->
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-logo">WS</div>
+    <div>
+      <div class="brand-name">WS Tester</div>
+      <div class="brand-sub">localhost dev tool</div>
+    </div>
+  </div>
+  <div class="sidebar-body">
+    <div class="sidebar-section">
+      <div class="section-hdr">Connection History</div>
+      <div id="historyList"><p class="empty-msg">No history yet</p></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="section-hdr">Saved Messages</div>
+      <div id="templateList"><p class="empty-msg">No saved messages</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Main ===== -->
+<div class="main">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="topbar-title">WebSocket Tester</div>
+    <button class="btn-icon" onclick="toggleTheme()" title="Toggle theme">
+      <span id="themeIcon">🌙</span>
+    </button>
+  </div>
+
+  <!-- Connection bar -->
+  <div class="conn-bar">
+    <div class="url-row">
+      <input
+        id="urlInput"
+        type="text"
+        class="input-url"
+        placeholder="ws://localhost:8080/ws"
+        value="ws://"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button class="btn btn-sm btn-outline" onclick="toggleHeaders()">Headers</button>
+      <button id="connectBtn" class="btn btn-primary" onclick="toggleConn()">Connect</button>
+    </div>
+
+    <div id="headersPanel" class="headers-panel hidden">
+      <div class="headers-warning">
+        ⚠ ブラウザの WebSocket API はカスタムヘッダー非対応です（参考・メモ用）
+      </div>
+      <div id="headerRows"></div>
+      <button class="btn-add-hdr" onclick="addHdrRow()">＋ ヘッダーを追加</button>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div class="statusbar">
+    <span class="status-dot closed" id="statusDot"></span>
+    <span class="status-lbl closed" id="statusLbl">CLOSED</span>
+    <span class="status-url" id="statusUrl"></span>
+    <button class="btn-clear" onclick="clearLog()">Clear</button>
+  </div>
+
+  <!-- Log area -->
+  <div class="log-area" id="logArea">
+    <div class="log-placeholder" id="logPlaceholder">
+      No messages yet — connect to a WebSocket server to begin
+    </div>
+  </div>
+
+  <!-- Auto-send bar -->
+  <div class="autosend-bar">
+    <label class="autosend-lbl">
+      <input type="checkbox" id="autoSendCheck" />
+      Auto Send
+    </label>
+    <input type="number" id="intervalInput" class="input-interval" value="1000" min="100" step="100" />
+    <span class="interval-unit">ms</span>
+    <span class="autosend-running" id="autoSendRunning">● Running</span>
+  </div>
+
+  <!-- Composer -->
+  <div class="composer">
+    <textarea
+      id="msgInput"
+      class="composer-textarea"
+      placeholder="Type your message here... (Ctrl+Enter to send)"
+    ></textarea>
+    <div class="composer-actions">
+      <div class="actions-left">
+        <select id="msgType" class="select-type">
+          <option value="text">Text</option>
+          <option value="json">JSON</option>
+        </select>
+        <button class="btn btn-sm btn-accent" onclick="fmtJSON()">Format JSON</button>
+      </div>
+      <div class="actions-right">
+        <div class="save-inline hidden" id="saveInline">
+          <input id="saveNameInput" type="text" class="input-save-name" placeholder="Template name..." />
+          <button class="btn btn-sm btn-success" onclick="confirmSave()">Save</button>
+          <button class="btn btn-sm btn-outline" onclick="cancelSave()">✕</button>
+        </div>
+        <div id="actionBtns">
+          <button class="btn btn-sm btn-warn" onclick="showSave()">Save</button>
+          <button class="btn-send" onclick="sendMsg()">Send ↑</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// State
+// ============================================================
+let ws = null;
+let connStatus = 'closed';
+let intervalTimer = null;
+let headersOpen = false;
+
+let templates = [];
+let history   = [];
+
+try { templates = JSON.parse(localStorage.getItem('wst-templates') || '[]'); } catch(e) {}
+try { history   = JSON.parse(localStorage.getItem('wst-history')   || '[]'); } catch(e) {}
+
+// ============================================================
+// Init
+// ============================================================
+(function init() {
+  renderHistory();
+  renderTemplates();
+  addHdrRow(); // start with one empty header row
+
+  const t = localStorage.getItem('wst-theme') || 'light';
+  applyTheme(t);
+})();
+
+// ============================================================
+// Theme
+// ============================================================
+function applyTheme(t) {
+  document.body.setAttribute('data-theme', t);
+  document.getElementById('themeIcon').textContent = t === 'dark' ? '☀️' : '🌙';
+  localStorage.setItem('wst-theme', t);
+}
+
+function toggleTheme() {
+  const cur = document.body.getAttribute('data-theme') || 'light';
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+}
+
+// ============================================================
+// Connection
+// ============================================================
+function toggleConn() {
+  if (connStatus === 'open' || connStatus === 'connecting') disconnect();
+  else connect();
+}
+
+function connect() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) { log('system', 'URLを入力してください'); return; }
+  if (!url.startsWith('ws://') && !url.startsWith('wss://')) {
+    log('system', 'URLは ws:// または wss:// で始める必要があります');
+    return;
+  }
+
+  setStatus('connecting');
+  document.getElementById('statusUrl').textContent = '';
+  log('system', `Connecting to ${url} …`);
+
+  try {
+    ws = new WebSocket(url);
+  } catch(e) {
+    setStatus('closed');
+    log('system', `Connection error: ${e.message}`);
+    return;
+  }
+
+  ws.onopen = () => {
+    setStatus('open', url);
+    log('system', `Connected to ${url}`);
+    pushHistory(url);
+  };
+
+  ws.onmessage = (e) => {
+    log('received', e.data);
+  };
+
+  ws.onclose = (e) => {
+    const reason = e.reason ? ` — reason: ${e.reason}` : '';
+    log('system', `Disconnected (code: ${e.code}${reason})`);
+    setStatus('closed');
+    ws = null;
+    if (intervalTimer) stopAutoSend(false);
+  };
+
+  ws.onerror = () => {
+    log('system', 'WebSocket error');
+  };
+}
+
+function disconnect() {
+  if (ws && ws.readyState !== WebSocket.CLOSED) {
+    setStatus('closing');
+    ws.close();
+  }
+}
+
+function setStatus(s, url) {
+  connStatus = s;
+  const dot  = document.getElementById('statusDot');
+  const lbl  = document.getElementById('statusLbl');
+  const urlEl = document.getElementById('statusUrl');
+  const btn  = document.getElementById('connectBtn');
+
+  dot.className = `status-dot ${s}`;
+  lbl.className = `status-lbl ${s}`;
+  lbl.textContent = s.toUpperCase();
+
+  if (url) urlEl.textContent = url;
+  if (s === 'closed') urlEl.textContent = '';
+
+  if (s === 'open') {
+    btn.textContent = 'Disconnect';
+    btn.className = 'btn btn-danger';
+    btn.disabled = false;
+  } else if (s === 'connecting' || s === 'closing') {
+    btn.textContent = s === 'connecting' ? 'Connecting…' : 'Closing…';
+    btn.className = 'btn btn-primary';
+    btn.disabled = true;
+  } else {
+    btn.textContent = 'Connect';
+    btn.className = 'btn btn-primary';
+    btn.disabled = false;
+  }
+}
+
+// ============================================================
+// Sending
+// ============================================================
+function sendMsg() {
+  if (connStatus !== 'open' || !ws) {
+    log('system', '接続されていません');
+    return;
+  }
+  const msg = document.getElementById('msgInput').value;
+  if (!msg.trim()) return;
+  ws.send(msg);
+  log('sent', msg);
+}
+
+// ============================================================
+// Logging
+// ============================================================
+function log(type, raw) {
+  const area = document.getElementById('logArea');
+  const placeholder = document.getElementById('logPlaceholder');
+  if (placeholder) placeholder.remove();
+
+  const entry = document.createElement('div');
+  entry.className = `log-entry ${type}`;
+
+  const now = new Date();
+  const pad = (n, len = 2) => String(n).padStart(len, '0');
+  const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}.${pad(now.getMilliseconds(), 3)}`;
+
+  const labels = { sent: '↑ Sent', received: '↓ Received', system: '⚙ System' };
+
+  let bodyHtml;
+  if (type !== 'system') {
+    try {
+      const parsed = JSON.parse(raw);
+      bodyHtml = syntaxHL(JSON.stringify(parsed, null, 2));
+    } catch(_) {
+      bodyHtml = esc(raw);
+    }
+  } else {
+    bodyHtml = esc(raw);
+  }
+
+  entry.innerHTML = `
+    <div class="log-entry-hdr">
+      <span class="log-type">${labels[type]}</span>
+      <span class="log-time">${timeStr}</span>
+    </div>
+    <div class="log-body">${bodyHtml}</div>
+  `;
+
+  area.appendChild(entry);
+  area.scrollTop = area.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById('logArea').innerHTML = '';
+}
+
+// ============================================================
+// Utilities
+// ============================================================
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function escAttr(s) {
+  return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function syntaxHL(json) {
+  const e = esc(json);
+  return e.replace(
+    /("(\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+    (m) => {
+      if (/^"/.test(m)) return /:$/.test(m) ? `<span class="jk">${m}</span>` : `<span class="js">${m}</span>`;
+      if (/true|false/.test(m))  return `<span class="jb">${m}</span>`;
+      if (/null/.test(m))        return `<span class="jnull">${m}</span>`;
+      return `<span class="jn">${m}</span>`;
+    }
+  );
+}
+
+// ============================================================
+// JSON Format
+// ============================================================
+function fmtJSON() {
+  const ta = document.getElementById('msgInput');
+  try {
+    ta.value = JSON.stringify(JSON.parse(ta.value), null, 2);
+    document.getElementById('msgType').value = 'json';
+  } catch(e) {
+    log('system', `Invalid JSON: ${e.message}`);
+  }
+}
+
+// ============================================================
+// Headers
+// ============================================================
+function toggleHeaders() {
+  headersOpen = !headersOpen;
+  document.getElementById('headersPanel').classList.toggle('hidden', !headersOpen);
+}
+
+function addHdrRow() {
+  const c = document.getElementById('headerRows');
+  const row = document.createElement('div');
+  row.className = 'hdr-row';
+  row.innerHTML = `
+    <input type="text" class="input-hdr" placeholder="Key" />
+    <input type="text" class="input-hdr" placeholder="Value" />
+    <button class="btn-rm" onclick="this.parentElement.remove()">×</button>
+  `;
+  c.appendChild(row);
+}
+
+// ============================================================
+// History
+// ============================================================
+function pushHistory(url) {
+  history = [url, ...history.filter(u => u !== url)].slice(0, 20);
+  localStorage.setItem('wst-history', JSON.stringify(history));
+  renderHistory();
+}
+
+function renderHistory() {
+  const el = document.getElementById('historyList');
+  if (!history.length) {
+    el.innerHTML = '<p class="empty-msg">No history yet</p>';
+    return;
+  }
+  el.innerHTML = history.map((url, i) => `
+    <div class="history-item" onclick="loadHistory(${i})">
+      <span class="history-url" title="${escAttr(url)}">${esc(url)}</span>
+      <button class="item-del" onclick="event.stopPropagation(); delHistory(${i})" title="削除">×</button>
+    </div>
+  `).join('');
+}
+
+function loadHistory(i) {
+  document.getElementById('urlInput').value = history[i];
+}
+
+function delHistory(i) {
+  history.splice(i, 1);
+  localStorage.setItem('wst-history', JSON.stringify(history));
+  renderHistory();
+}
+
+// ============================================================
+// Templates
+// ============================================================
+function showSave() {
+  document.getElementById('saveInline').classList.remove('hidden');
+  document.getElementById('actionBtns').style.display = 'none';
+  document.getElementById('saveNameInput').focus();
+}
+
+function cancelSave() {
+  document.getElementById('saveInline').classList.add('hidden');
+  document.getElementById('actionBtns').style.display = '';
+  document.getElementById('saveNameInput').value = '';
+}
+
+function confirmSave() {
+  const name = document.getElementById('saveNameInput').value.trim();
+  if (!name) { document.getElementById('saveNameInput').focus(); return; }
+  const msg = document.getElementById('msgInput').value.trim();
+  if (!msg) { log('system', 'メッセージが空です'); cancelSave(); return; }
+  templates.push({ name, message: msg, type: document.getElementById('msgType').value });
+  localStorage.setItem('wst-templates', JSON.stringify(templates));
+  log('system', `Template "${name}" saved`);
+  cancelSave();
+  renderTemplates();
+}
+
+function renderTemplates() {
+  const el = document.getElementById('templateList');
+  if (!templates.length) {
+    el.innerHTML = '<p class="empty-msg">No saved messages</p>';
+    return;
+  }
+  el.innerHTML = templates.map((t, i) => `
+    <div class="tpl-item" onclick="loadTemplate(${i})">
+      <div class="tpl-info">
+        <div class="tpl-name">${esc(t.name)}</div>
+        <div class="tpl-preview">${esc(t.message.slice(0, 50))}${t.message.length > 50 ? '…' : ''}</div>
+      </div>
+      <button class="item-del" onclick="event.stopPropagation(); delTemplate(${i})" title="削除">×</button>
+    </div>
+  `).join('');
+}
+
+function loadTemplate(i) {
+  const t = templates[i];
+  document.getElementById('msgInput').value = t.message;
+  document.getElementById('msgType').value  = t.type || 'text';
+}
+
+function delTemplate(i) {
+  templates.splice(i, 1);
+  localStorage.setItem('wst-templates', JSON.stringify(templates));
+  renderTemplates();
+}
+
+// ============================================================
+// Auto Send
+// ============================================================
+function startAutoSend() {
+  const ms = parseInt(document.getElementById('intervalInput').value, 10);
+  if (isNaN(ms) || ms < 100) {
+    log('system', 'インターバルは 100ms 以上を指定してください');
+    document.getElementById('autoSendCheck').checked = false;
+    return;
+  }
+  if (connStatus !== 'open') {
+    log('system', '接続されていません');
+    document.getElementById('autoSendCheck').checked = false;
+    return;
+  }
+  log('system', `Auto send started (every ${ms}ms)`);
+  document.getElementById('autoSendRunning').style.display = 'inline';
+  intervalTimer = setInterval(() => {
+    if (connStatus !== 'open') { stopAutoSend(true); return; }
+    sendMsg();
+  }, ms);
+}
+
+function stopAutoSend(addLogEntry = true) {
+  if (!intervalTimer) return;
+  clearInterval(intervalTimer);
+  intervalTimer = null;
+  document.getElementById('autoSendRunning').style.display = 'none';
+  document.getElementById('autoSendCheck').checked = false;
+  if (addLogEntry) log('system', 'Auto send stopped');
+}
+
+document.getElementById('autoSendCheck').addEventListener('change', function() {
+  if (this.checked) startAutoSend();
+  else stopAutoSend();
+});
+
+// ============================================================
+// Keyboard shortcuts
+// ============================================================
+document.getElementById('msgInput').addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); sendMsg(); }
+});
+
+document.getElementById('saveNameInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter')  confirmSave();
+  if (e.key === 'Escape') cancelSave();
+});
+
+document.getElementById('urlInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') toggleConn();
+});
+</script>
+</body>
+</html>

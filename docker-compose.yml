@@ -1,0 +1,8 @@
+services:
+  websocket-tester:
+    build: .
+    ports:
+      - "7070:7070"
+    volumes:
+      - ./public:/app/public
+    restart: unless-stopped
