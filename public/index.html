@@ -128,14 +128,34 @@
 
     .sidebar-section { margin-bottom: 20px; }
 
+    .section-hdr-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 4px 8px;
+    }
+
     .section-hdr {
       font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
       color: var(--c-text-3);
-      padding: 4px 4px 8px;
     }
+
+    .btn-refresh {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--c-text-3);
+      font-size: 13px;
+      padding: 1px 3px;
+      border-radius: 3px;
+      line-height: 1;
+      transition: color 0.1s;
+    }
+
+    .btn-refresh:hover { color: var(--c-primary); }
 
     .empty-msg {
       font-size: 12px;
@@ -144,6 +164,7 @@
       padding: 2px 4px;
     }
 
+    /* History & Template items */
     .history-item, .tpl-item {
       display: flex;
       align-items: center;
@@ -210,6 +231,42 @@
     .history-item:hover .item-del,
     .tpl-item:hover .item-del { opacity: 1; }
     .item-del:hover { color: var(--c-danger); }
+
+    /* Cookie items */
+    .cookie-item {
+      padding: 5px 8px;
+      border-radius: 6px;
+      margin-bottom: 2px;
+      background: var(--c-surface-2);
+      border: 1px solid var(--c-border);
+      cursor: default;
+    }
+
+    .cookie-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--c-primary);
+      font-family: var(--mono);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .cookie-val {
+      font-size: 10px;
+      color: var(--c-text-2);
+      font-family: var(--mono);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-top: 1px;
+    }
+
+    .cookie-note {
+      font-size: 10px;
+      color: var(--c-text-3);
+      padding: 4px 4px 0;
+    }
 
     /* ===== Main ===== */
     .main {
@@ -280,80 +337,6 @@
 
     .input-url:focus { border-color: var(--c-primary); }
     .input-url::placeholder { font-family: -apple-system, sans-serif; color: var(--c-text-3); }
-
-    /* Headers */
-    .headers-panel {
-      margin-top: 8px;
-      background: var(--c-surface-2);
-      border: 1px solid var(--c-border);
-      border-radius: 8px;
-      padding: 10px 12px;
-    }
-
-    .headers-panel.hidden { display: none; }
-
-    .headers-warning {
-      font-size: 11px;
-      color: var(--c-warn);
-      margin-bottom: 8px;
-      padding: 4px 8px;
-      background: rgba(245,158,11,0.08);
-      border-radius: 4px;
-      border-left: 2px solid var(--c-warn);
-    }
-
-    .hdr-row {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      margin-bottom: 6px;
-    }
-
-    .input-hdr {
-      flex: 1;
-      padding: 5px 8px;
-      border: 1px solid var(--c-border);
-      border-radius: 6px;
-      background: var(--c-surface);
-      color: var(--c-text);
-      font-size: 12px;
-      outline: none;
-    }
-
-    .input-hdr:focus { border-color: var(--c-primary); }
-
-    .btn-rm {
-      background: none;
-      border: none;
-      color: var(--c-text-3);
-      cursor: pointer;
-      font-size: 18px;
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 4px;
-      line-height: 1;
-      flex-shrink: 0;
-      transition: color 0.1s;
-    }
-
-    .btn-rm:hover { color: var(--c-danger); }
-
-    .btn-add-hdr {
-      width: 100%;
-      padding: 5px;
-      background: none;
-      border: 1px dashed var(--c-border);
-      border-radius: 6px;
-      color: var(--c-text-3);
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.1s;
-    }
-
-    .btn-add-hdr:hover { border-color: var(--c-primary); color: var(--c-primary); }
 
     /* Status bar */
     .statusbar {
@@ -680,12 +663,24 @@
   </div>
   <div class="sidebar-body">
     <div class="sidebar-section">
-      <div class="section-hdr">Connection History</div>
+      <div class="section-hdr-row">
+        <div class="section-hdr">Connection History</div>
+      </div>
       <div id="historyList"><p class="empty-msg">No history yet</p></div>
     </div>
     <div class="sidebar-section">
-      <div class="section-hdr">Saved Messages</div>
+      <div class="section-hdr-row">
+        <div class="section-hdr">Saved Messages</div>
+      </div>
       <div id="templateList"><p class="empty-msg">No saved messages</p></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="section-hdr-row">
+        <div class="section-hdr">Cookies</div>
+        <button class="btn-refresh" onclick="renderCookies()" title="Refresh">↺</button>
+      </div>
+      <div id="cookieList"><p class="empty-msg">No cookies</p></div>
+      <p class="cookie-note">* HttpOnly cookies are not visible</p>
     </div>
   </div>
 </div>
@@ -713,16 +708,7 @@
         autocomplete="off"
         spellcheck="false"
       />
-      <button class="btn btn-sm btn-outline" onclick="toggleHeaders()">Headers</button>
       <button id="connectBtn" class="btn btn-primary" onclick="toggleConn()">Connect</button>
-    </div>
-
-    <div id="headersPanel" class="headers-panel hidden">
-      <div class="headers-warning">
-        ⚠ ブラウザの WebSocket API はカスタムヘッダー非対応です（参考・メモ用）
-      </div>
-      <div id="headerRows"></div>
-      <button class="btn-add-hdr" onclick="addHdrRow()">＋ ヘッダーを追加</button>
     </div>
   </div>
 
@@ -790,7 +776,6 @@
 let ws = null;
 let connStatus = 'closed';
 let intervalTimer = null;
-let headersOpen = false;
 
 let templates = [];
 let history   = [];
@@ -804,7 +789,7 @@ try { history   = JSON.parse(localStorage.getItem('wst-history')   || '[]'); } c
 (function init() {
   renderHistory();
   renderTemplates();
-  addHdrRow(); // start with one empty header row
+  renderCookies();
 
   const t = localStorage.getItem('wst-theme') || 'light';
   applyTheme(t);
@@ -856,6 +841,7 @@ function connect() {
     setStatus('open', url);
     log('system', `Connected to ${url}`);
     pushHistory(url);
+    renderCookies(); // refresh cookie list on connect
   };
 
   ws.onmessage = (e) => {
@@ -884,10 +870,10 @@ function disconnect() {
 
 function setStatus(s, url) {
   connStatus = s;
-  const dot  = document.getElementById('statusDot');
-  const lbl  = document.getElementById('statusLbl');
+  const dot   = document.getElementById('statusDot');
+  const lbl   = document.getElementById('statusLbl');
   const urlEl = document.getElementById('statusUrl');
-  const btn  = document.getElementById('connectBtn');
+  const btn   = document.getElementById('connectBtn');
 
   dot.className = `status-dot ${s}`;
   lbl.className = `status-lbl ${s}`;
@@ -1012,23 +998,37 @@ function fmtJSON() {
 }
 
 // ============================================================
-// Headers
+// Cookies
 // ============================================================
-function toggleHeaders() {
-  headersOpen = !headersOpen;
-  document.getElementById('headersPanel').classList.toggle('hidden', !headersOpen);
-}
+function renderCookies() {
+  const el = document.getElementById('cookieList');
+  const raw = document.cookie;
 
-function addHdrRow() {
-  const c = document.getElementById('headerRows');
-  const row = document.createElement('div');
-  row.className = 'hdr-row';
-  row.innerHTML = `
-    <input type="text" class="input-hdr" placeholder="Key" />
-    <input type="text" class="input-hdr" placeholder="Value" />
-    <button class="btn-rm" onclick="this.parentElement.remove()">×</button>
-  `;
-  c.appendChild(row);
+  if (!raw.trim()) {
+    el.innerHTML = '<p class="empty-msg">No cookies</p>';
+    return;
+  }
+
+  const cookies = raw.split(';').map(c => {
+    const idx = c.indexOf('=');
+    if (idx === -1) return { name: c.trim(), value: '' };
+    return {
+      name:  c.slice(0, idx).trim(),
+      value: c.slice(idx + 1).trim(),
+    };
+  }).filter(c => c.name);
+
+  if (!cookies.length) {
+    el.innerHTML = '<p class="empty-msg">No cookies</p>';
+    return;
+  }
+
+  el.innerHTML = cookies.map(c => `
+    <div class="cookie-item" title="${escAttr(c.name)}=${escAttr(c.value)}">
+      <div class="cookie-name">${esc(c.name)}</div>
+      <div class="cookie-val">${esc(c.value) || '<em style="opacity:.5">empty</em>'}</div>
+    </div>
+  `).join('');
 }
 
 // ============================================================
