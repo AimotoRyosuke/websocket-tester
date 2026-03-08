@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WebSocket Tester</title>
+  <script src="/socket.io.min.js"></script>
   <style>
     /* ===== Variables ===== */
     :root {
@@ -19,7 +20,6 @@
       --c-success:      #10b981;
       --c-warn:         #f59e0b;
       --c-danger:       #ef4444;
-      /* log */
       --c-sent-bg:      #eef2ff;
       --c-sent-bd:      #818cf8;
       --c-sent-lbl:     #4f46e5;
@@ -29,7 +29,6 @@
       --c-sys-bg:       #f8fafc;
       --c-sys-bd:       #cbd5e1;
       --c-sys-lbl:      #64748b;
-      /* layout */
       --sidebar-w:      260px;
       --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
     }
@@ -53,7 +52,6 @@
       --c-sys-lbl:      #64748b;
     }
 
-    /* ===== Reset ===== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -66,7 +64,6 @@
       font-size: 14px;
     }
 
-    /* ===== Scrollbar ===== */
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 4px; }
@@ -108,24 +105,10 @@
       box-shadow: 0 2px 8px rgba(99,102,241,0.3);
     }
 
-    .brand-name {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--c-text);
-      line-height: 1.3;
-    }
+    .brand-name { font-size: 13px; font-weight: 700; color: var(--c-text); line-height: 1.3; }
+    .brand-sub  { font-size: 10px; color: var(--c-text-3); }
 
-    .brand-sub {
-      font-size: 10px;
-      color: var(--c-text-3);
-    }
-
-    .sidebar-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: 12px;
-    }
-
+    .sidebar-body { flex: 1; overflow-y: auto; padding: 12px; }
     .sidebar-section { margin-bottom: 20px; }
 
     .section-hdr-row {
@@ -154,17 +137,10 @@
       line-height: 1;
       transition: color 0.1s;
     }
-
     .btn-refresh:hover { color: var(--c-primary); }
 
-    .empty-msg {
-      font-size: 12px;
-      color: var(--c-text-3);
-      font-style: italic;
-      padding: 2px 4px;
-    }
+    .empty-msg { font-size: 12px; color: var(--c-text-3); font-style: italic; padding: 2px 4px; }
 
-    /* History & Template items */
     .history-item, .tpl-item {
       display: flex;
       align-items: center;
@@ -175,7 +151,6 @@
       transition: background 0.1s;
       margin-bottom: 1px;
     }
-
     .history-item:hover, .tpl-item:hover { background: var(--c-surface-2); }
 
     .history-url {
@@ -187,28 +162,11 @@
       white-space: nowrap;
       font-family: var(--mono);
     }
-
     .history-item:hover .history-url { color: var(--c-text); }
 
     .tpl-info { flex: 1; overflow: hidden; }
-
-    .tpl-name {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--c-text);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .tpl-preview {
-      font-size: 10px;
-      color: var(--c-text-3);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      margin-top: 1px;
-    }
+    .tpl-name  { font-size: 12px; font-weight: 600; color: var(--c-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tpl-preview { font-size: 10px; color: var(--c-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
 
     .item-del {
       background: none;
@@ -227,7 +185,6 @@
       flex-shrink: 0;
       line-height: 1;
     }
-
     .history-item:hover .item-del,
     .tpl-item:hover .item-del { opacity: 1; }
     .item-del:hover { color: var(--c-danger); }
@@ -239,45 +196,14 @@
       margin-bottom: 2px;
       background: var(--c-surface-2);
       border: 1px solid var(--c-border);
-      cursor: default;
     }
-
-    .cookie-name {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--c-primary);
-      font-family: var(--mono);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .cookie-val {
-      font-size: 10px;
-      color: var(--c-text-2);
-      font-family: var(--mono);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      margin-top: 1px;
-    }
-
-    .cookie-note {
-      font-size: 10px;
-      color: var(--c-text-3);
-      padding: 4px 4px 0;
-    }
+    .cookie-name  { font-size: 11px; font-weight: 600; color: var(--c-primary); font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cookie-val   { font-size: 10px; color: var(--c-text-2); font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+    .cookie-note  { font-size: 10px; color: var(--c-text-3); padding: 4px 4px 0; }
 
     /* ===== Main ===== */
-    .main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      min-width: 0;
-    }
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 
-    /* Top bar */
     .topbar {
       background: var(--c-surface);
       border-bottom: 1px solid var(--c-border);
@@ -287,12 +213,7 @@
       justify-content: space-between;
       flex-shrink: 0;
     }
-
-    .topbar-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--c-text);
-    }
+    .topbar-title { font-size: 15px; font-weight: 700; color: var(--c-text); }
 
     .btn-icon {
       background: none;
@@ -304,7 +225,6 @@
       transition: background 0.1s;
       color: var(--c-text-2);
     }
-
     .btn-icon:hover { background: var(--c-surface-2); }
 
     /* Connection bar */
@@ -315,11 +235,22 @@
       flex-shrink: 0;
     }
 
-    .url-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
+    .url-row { display: flex; gap: 8px; align-items: center; }
+
+    .select-mode {
+      padding: 8px 10px;
+      border: 1.5px solid var(--c-border);
+      border-radius: 8px;
+      background: var(--c-bg);
+      color: var(--c-text);
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: border-color 0.15s;
     }
+    .select-mode:focus { border-color: var(--c-primary); }
 
     .input-url {
       flex: 1;
@@ -334,7 +265,6 @@
       transition: border-color 0.15s;
       min-width: 0;
     }
-
     .input-url:focus { border-color: var(--c-primary); }
     .input-url::placeholder { font-family: -apple-system, sans-serif; color: var(--c-text-3); }
 
@@ -358,7 +288,6 @@
       flex-shrink: 0;
       transition: background 0.3s;
     }
-
     .status-dot.connecting { background: var(--c-warn); animation: blink 0.7s ease-in-out infinite; }
     .status-dot.open       { background: var(--c-success); }
     .status-dot.closing    { background: var(--c-warn); animation: blink 0.7s ease-in-out infinite; }
@@ -366,25 +295,13 @@
 
     @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.15; } }
 
-    .status-lbl {
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      transition: color 0.3s;
-    }
-
+    .status-lbl { font-weight: 700; letter-spacing: 0.5px; transition: color 0.3s; }
     .status-lbl.connecting { color: var(--c-warn); }
     .status-lbl.open       { color: var(--c-success); }
     .status-lbl.closing    { color: var(--c-warn); }
     .status-lbl.closed     { color: var(--c-text-3); }
 
-    .status-url {
-      color: var(--c-text-3);
-      font-family: var(--mono);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      flex: 1;
-    }
+    .status-url { color: var(--c-text-3); font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 
     .btn-clear {
       background: none;
@@ -397,7 +314,6 @@
       transition: color 0.1s;
       flex-shrink: 0;
     }
-
     .btn-clear:hover { color: var(--c-danger); }
 
     /* Log area */
@@ -427,45 +343,21 @@
       line-height: 1.5;
       animation: fadeIn 0.15s ease;
     }
-
     @keyframes fadeIn { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform: translateY(0); } }
 
     .log-entry.sent     { background: var(--c-sent-bg); border-left: 3px solid var(--c-sent-bd); }
     .log-entry.received { background: var(--c-recv-bg); border-left: 3px solid var(--c-recv-bd); }
     .log-entry.system   { background: var(--c-sys-bg);  border-left: 3px solid var(--c-sys-bd);  }
 
-    .log-entry-hdr {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 4px;
-    }
-
-    .log-type {
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-    }
-
+    .log-entry-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .log-type { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; }
     .sent .log-type     { color: var(--c-sent-lbl); }
     .received .log-type { color: var(--c-recv-lbl); }
     .system .log-type   { color: var(--c-sys-lbl);  }
 
-    .log-time {
-      font-size: 10px;
-      color: var(--c-text-3);
-      font-family: var(--mono);
-    }
+    .log-time { font-size: 10px; color: var(--c-text-3); font-family: var(--mono); }
+    .log-body { font-family: var(--mono); white-space: pre-wrap; word-break: break-all; color: var(--c-text); }
 
-    .log-body {
-      font-family: var(--mono);
-      white-space: pre-wrap;
-      word-break: break-all;
-      color: var(--c-text);
-    }
-
-    /* JSON syntax highlighting */
     .jk    { color: #6366f1; }
     .js    { color: #10b981; }
     .jn    { color: #f59e0b; }
@@ -484,16 +376,7 @@
       font-size: 12px;
     }
 
-    .autosend-lbl {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      cursor: pointer;
-      color: var(--c-text-2);
-      font-weight: 500;
-      user-select: none;
-    }
-
+    .autosend-lbl { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--c-text-2); font-weight: 500; user-select: none; }
     .autosend-lbl input[type="checkbox"] { cursor: pointer; }
 
     .input-interval {
@@ -507,17 +390,9 @@
       outline: none;
       text-align: right;
     }
-
     .input-interval:focus { border-color: var(--c-primary); }
-
     .interval-unit { color: var(--c-text-3); }
-
-    .autosend-running {
-      color: var(--c-success);
-      font-weight: 700;
-      font-size: 11px;
-      display: none;
-    }
+    .autosend-running { color: var(--c-success); font-weight: 700; font-size: 11px; display: none; }
 
     /* Composer */
     .composer {
@@ -526,6 +401,60 @@
       padding: 12px 16px;
       flex-shrink: 0;
     }
+
+    /* Socket.IO event row */
+    .sio-event-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .input-emit {
+      flex: 1;
+      padding: 6px 10px;
+      border: 1px solid var(--c-border);
+      border-radius: 6px;
+      background: var(--c-bg);
+      color: var(--c-text);
+      font-size: 12px;
+      font-family: var(--mono);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .input-emit:focus { border-color: var(--c-primary); }
+    .input-emit::placeholder { font-family: -apple-system, sans-serif; color: var(--c-text-3); }
+
+    .subscribed-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 4px;
+      min-height: 0;
+    }
+
+    .sub-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 8px 2px 8px;
+      background: var(--c-primary);
+      color: white;
+      border-radius: 10px;
+      font-size: 11px;
+      font-family: var(--mono);
+    }
+
+    .sub-tag button {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.8);
+      cursor: pointer;
+      font-size: 13px;
+      padding: 0 0 0 2px;
+      line-height: 1;
+      transition: color 0.1s;
+    }
+    .sub-tag button:hover { color: white; }
 
     .composer-textarea {
       width: 100%;
@@ -543,7 +472,6 @@
       display: block;
       transition: border-color 0.15s;
     }
-
     .composer-textarea:focus { border-color: var(--c-primary); }
     .composer-textarea::placeholder { font-family: -apple-system, sans-serif; color: var(--c-text-3); }
 
@@ -555,12 +483,7 @@
       gap: 8px;
       flex-wrap: wrap;
     }
-
-    .actions-left, .actions-right {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+    .actions-left, .actions-right { display: flex; align-items: center; gap: 6px; }
 
     .select-type {
       padding: 5px 8px;
@@ -573,12 +496,7 @@
       cursor: pointer;
     }
 
-    .save-inline {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
+    .save-inline { display: flex; align-items: center; gap: 6px; }
     .save-inline.hidden { display: none; }
 
     .input-save-name {
@@ -591,7 +509,6 @@
       outline: none;
       width: 140px;
     }
-
     .input-save-name:focus { border-color: var(--c-primary); }
 
     /* ===== Buttons ===== */
@@ -608,29 +525,19 @@
       transition: all 0.15s;
       white-space: nowrap;
     }
-
     .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
     .btn-primary { background: var(--c-primary); color: white; }
     .btn-primary:hover:not(:disabled) { background: var(--c-primary-h); }
-
-    .btn-danger { background: var(--c-danger); color: white; }
-    .btn-danger:hover:not(:disabled) { background: #dc2626; }
-
+    .btn-danger  { background: var(--c-danger); color: white; }
+    .btn-danger:hover:not(:disabled)  { background: #dc2626; }
     .btn-success { background: var(--c-success); color: white; }
     .btn-success:hover:not(:disabled) { background: #059669; }
-
-    .btn-warn { background: var(--c-warn); color: #1e293b; }
-    .btn-warn:hover:not(:disabled) { background: #d97706; }
-
-    .btn-accent { background: #a5b4fc; color: #1e1b4b; }
-    .btn-accent:hover:not(:disabled) { background: #818cf8; }
-
-    .btn-outline {
-      background: none;
-      border: 1px solid var(--c-border);
-      color: var(--c-text-2);
-    }
+    .btn-warn    { background: var(--c-warn); color: #1e293b; }
+    .btn-warn:hover:not(:disabled)    { background: #d97706; }
+    .btn-accent  { background: #a5b4fc; color: #1e1b4b; }
+    .btn-accent:hover:not(:disabled)  { background: #818cf8; }
+    .btn-outline { background: none; border: 1px solid var(--c-border); color: var(--c-text-2); }
     .btn-outline:hover { background: var(--c-surface-2); }
 
     .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
@@ -646,8 +553,9 @@
       cursor: pointer;
       transition: background 0.15s;
     }
-
     .btn-send:hover { background: #059669; }
+
+    .d-none { display: none !important; }
   </style>
 </head>
 <body data-theme="light">
@@ -688,7 +596,6 @@
 <!-- ===== Main ===== -->
 <div class="main">
 
-  <!-- Top bar -->
   <div class="topbar">
     <div class="topbar-title">WebSocket Tester</div>
     <button class="btn-icon" onclick="toggleTheme()" title="Toggle theme">
@@ -699,6 +606,10 @@
   <!-- Connection bar -->
   <div class="conn-bar">
     <div class="url-row">
+      <select id="modeSelect" class="select-mode" onchange="switchMode()">
+        <option value="ws">WebSocket</option>
+        <option value="sio">Socket.IO</option>
+      </select>
       <input
         id="urlInput"
         type="text"
@@ -740,6 +651,15 @@
 
   <!-- Composer -->
   <div class="composer">
+    <!-- Socket.IO: event name row (hidden in WebSocket mode) -->
+    <div class="sio-event-row d-none" id="sioEventRow">
+      <input id="emitEvent" class="input-emit" placeholder="Event name (emit)" />
+      <input id="subscribeEvent" class="input-emit" placeholder="Subscribe to event" />
+      <button class="btn btn-sm btn-outline" onclick="doSubscribe()">Subscribe</button>
+    </div>
+    <!-- Subscribed event tags -->
+    <div class="subscribed-tags d-none" id="subscribedTags"></div>
+
     <textarea
       id="msgInput"
       class="composer-textarea"
@@ -773,13 +693,15 @@
 // ============================================================
 // State
 // ============================================================
-let ws = null;
-let connStatus = 'closed';
+let mode        = 'ws';   // 'ws' | 'sio'
+let ws          = null;
+let socket      = null;   // Socket.IO
+let connStatus  = 'closed';
 let intervalTimer = null;
+let subscribedEvents = new Set();
 
 let templates = [];
 let history   = [];
-
 try { templates = JSON.parse(localStorage.getItem('wst-templates') || '[]'); } catch(e) {}
 try { history   = JSON.parse(localStorage.getItem('wst-history')   || '[]'); } catch(e) {}
 
@@ -790,9 +712,7 @@ try { history   = JSON.parse(localStorage.getItem('wst-history')   || '[]'); } c
   renderHistory();
   renderTemplates();
   renderCookies();
-
-  const t = localStorage.getItem('wst-theme') || 'light';
-  applyTheme(t);
+  applyTheme(localStorage.getItem('wst-theme') || 'light');
 })();
 
 // ============================================================
@@ -803,10 +723,38 @@ function applyTheme(t) {
   document.getElementById('themeIcon').textContent = t === 'dark' ? '☀️' : '🌙';
   localStorage.setItem('wst-theme', t);
 }
-
 function toggleTheme() {
-  const cur = document.body.getAttribute('data-theme') || 'light';
-  applyTheme(cur === 'dark' ? 'light' : 'dark');
+  applyTheme(document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+}
+
+// ============================================================
+// Mode switch (WebSocket ↔ Socket.IO)
+// ============================================================
+function switchMode() {
+  mode = document.getElementById('modeSelect').value;
+  const urlInput  = document.getElementById('urlInput');
+  const eventRow  = document.getElementById('sioEventRow');
+  const subTags   = document.getElementById('subscribedTags');
+
+  if (mode === 'sio') {
+    let u = urlInput.value;
+    if      (u.startsWith('ws://'))  u = 'http://'  + u.slice(5);
+    else if (u.startsWith('wss://')) u = 'https://' + u.slice(6);
+    else if (!u.startsWith('http'))  u = 'http://';
+    urlInput.value = u;
+    urlInput.placeholder = 'http://localhost:3000';
+    eventRow.classList.remove('d-none');
+    subTags.classList.remove('d-none');
+  } else {
+    let u = urlInput.value;
+    if      (u.startsWith('http://'))  u = 'ws://'  + u.slice(7);
+    else if (u.startsWith('https://')) u = 'wss://' + u.slice(8);
+    else if (!u.startsWith('ws'))      u = 'ws://';
+    urlInput.value = u;
+    urlInput.placeholder = 'ws://localhost:8080/ws';
+    eventRow.classList.add('d-none');
+    subTags.classList.add('d-none');
+  }
 }
 
 // ============================================================
@@ -818,17 +766,19 @@ function toggleConn() {
 }
 
 function connect() {
+  if (mode === 'sio') connectSIO(); else connectWS();
+}
+
+function connectWS() {
   const url = document.getElementById('urlInput').value.trim();
   if (!url) { log('system', 'URLを入力してください'); return; }
   if (!url.startsWith('ws://') && !url.startsWith('wss://')) {
     log('system', 'URLは ws:// または wss:// で始める必要があります');
     return;
   }
-
   setStatus('connecting');
   document.getElementById('statusUrl').textContent = '';
   log('system', `Connecting to ${url} …`);
-
   try {
     ws = new WebSocket(url);
   } catch(e) {
@@ -836,35 +786,61 @@ function connect() {
     log('system', `Connection error: ${e.message}`);
     return;
   }
-
-  ws.onopen = () => {
-    setStatus('open', url);
-    log('system', `Connected to ${url}`);
-    pushHistory(url);
-    renderCookies(); // refresh cookie list on connect
-  };
-
-  ws.onmessage = (e) => {
-    log('received', e.data);
-  };
-
-  ws.onclose = (e) => {
-    const reason = e.reason ? ` — reason: ${e.reason}` : '';
+  ws.onopen    = () => { setStatus('open', url); log('system', `Connected to ${url}`); pushHistory(url); renderCookies(); };
+  ws.onmessage = (e) => { log('received', e.data); };
+  ws.onclose   = (e) => {
+    const reason = e.reason ? ` — ${e.reason}` : '';
     log('system', `Disconnected (code: ${e.code}${reason})`);
-    setStatus('closed');
-    ws = null;
+    setStatus('closed'); ws = null;
     if (intervalTimer) stopAutoSend(false);
   };
+  ws.onerror = () => { log('system', 'WebSocket error'); };
+}
 
-  ws.onerror = () => {
-    log('system', 'WebSocket error');
-  };
+function connectSIO() {
+  if (typeof io === 'undefined') {
+    log('system', 'Socket.IO client not loaded (internet connection required)');
+    return;
+  }
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) { log('system', 'URLを入力してください'); return; }
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    log('system', 'Socket.IO URLは http:// または https:// で始める必要があります');
+    return;
+  }
+  setStatus('connecting');
+  document.getElementById('statusUrl').textContent = '';
+  log('system', `Connecting to ${url} (Socket.IO) …`);
+  try {
+    socket = io(url, { transports: ['websocket', 'polling'], reconnection: false });
+  } catch(e) {
+    setStatus('closed');
+    log('system', `Connection error: ${e.message}`);
+    return;
+  }
+  socket.on('connect', () => {
+    setStatus('open', url);
+    log('system', `Connected — Socket.IO id: ${socket.id}`);
+    pushHistory(url);
+    renderCookies();
+  });
+  socket.on('disconnect', (reason) => {
+    log('system', `Disconnected — ${reason}`);
+    setStatus('closed'); socket = null;
+    subscribedEvents.clear(); renderSubscribedTags();
+    if (intervalTimer) stopAutoSend(false);
+  });
+  socket.on('connect_error', (e) => {
+    log('system', `Connection error: ${e.message}`);
+    setStatus('closed'); socket = null;
+  });
 }
 
 function disconnect() {
-  if (ws && ws.readyState !== WebSocket.CLOSED) {
-    setStatus('closing');
-    ws.close();
+  if (mode === 'sio') {
+    if (socket) { setStatus('closing'); socket.disconnect(); }
+  } else {
+    if (ws && ws.readyState !== WebSocket.CLOSED) { setStatus('closing'); ws.close(); }
   }
 }
 
@@ -878,22 +854,16 @@ function setStatus(s, url) {
   dot.className = `status-dot ${s}`;
   lbl.className = `status-lbl ${s}`;
   lbl.textContent = s.toUpperCase();
-
   if (url) urlEl.textContent = url;
   if (s === 'closed') urlEl.textContent = '';
 
   if (s === 'open') {
-    btn.textContent = 'Disconnect';
-    btn.className = 'btn btn-danger';
-    btn.disabled = false;
+    btn.textContent = 'Disconnect'; btn.className = 'btn btn-danger'; btn.disabled = false;
   } else if (s === 'connecting' || s === 'closing') {
     btn.textContent = s === 'connecting' ? 'Connecting…' : 'Closing…';
-    btn.className = 'btn btn-primary';
-    btn.disabled = true;
+    btn.className = 'btn btn-primary'; btn.disabled = true;
   } else {
-    btn.textContent = 'Connect';
-    btn.className = 'btn btn-primary';
-    btn.disabled = false;
+    btn.textContent = 'Connect'; btn.className = 'btn btn-primary'; btn.disabled = false;
   }
 }
 
@@ -901,20 +871,74 @@ function setStatus(s, url) {
 // Sending
 // ============================================================
 function sendMsg() {
-  if (connStatus !== 'open' || !ws) {
-    log('system', '接続されていません');
-    return;
-  }
+  if (mode === 'sio') sendSIO(); else sendWS();
+}
+
+function sendWS() {
+  if (connStatus !== 'open' || !ws) { log('system', '接続されていません'); return; }
   const msg = document.getElementById('msgInput').value;
   if (!msg.trim()) return;
   ws.send(msg);
   log('sent', msg);
 }
 
+function sendSIO() {
+  if (connStatus !== 'open' || !socket) { log('system', '接続されていません'); return; }
+  const msg   = document.getElementById('msgInput').value;
+  const event = document.getElementById('emitEvent').value.trim() || 'message';
+  if (!msg.trim()) return;
+  // Send as parsed object if valid JSON, else as string
+  let payload;
+  try { payload = JSON.parse(msg); } catch(_) { payload = msg; }
+  socket.emit(event, payload);
+  log('sent', msg, event);
+}
+
+// ============================================================
+// Socket.IO subscribe
+// ============================================================
+function doSubscribe() {
+  if (connStatus !== 'open' || !socket) {
+    log('system', '接続後にサブスクライブできます'); return;
+  }
+  const input     = document.getElementById('subscribeEvent');
+  const eventName = input.value.trim();
+  if (!eventName) { input.focus(); return; }
+  if (subscribedEvents.has(eventName)) {
+    log('system', `Already subscribed to "${eventName}"`); return;
+  }
+  socket.on(eventName, (data) => {
+    const str = typeof data === 'object' ? JSON.stringify(data) : String(data);
+    log('received', str, eventName);
+  });
+  subscribedEvents.add(eventName);
+  renderSubscribedTags();
+  log('system', `Subscribed to "${eventName}"`);
+  input.value = '';
+}
+
+function unsubscribe(eventName) {
+  if (socket) socket.off(eventName);
+  subscribedEvents.delete(eventName);
+  renderSubscribedTags();
+  log('system', `Unsubscribed from "${eventName}"`);
+}
+
+function renderSubscribedTags() {
+  const el = document.getElementById('subscribedTags');
+  if (!subscribedEvents.size) { el.innerHTML = ''; return; }
+  el.innerHTML = [...subscribedEvents].map(e => `
+    <span class="sub-tag">
+      ${esc(e)}
+      <button onclick="unsubscribe('${escAttr(e)}')" title="Unsubscribe">×</button>
+    </span>
+  `).join('');
+}
+
 // ============================================================
 // Logging
 // ============================================================
-function log(type, raw) {
+function log(type, raw, eventName = null) {
   const area = document.getElementById('logArea');
   const placeholder = document.getElementById('logPlaceholder');
   if (placeholder) placeholder.remove();
@@ -926,23 +950,22 @@ function log(type, raw) {
   const pad = (n, len = 2) => String(n).padStart(len, '0');
   const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}.${pad(now.getMilliseconds(), 3)}`;
 
-  const labels = { sent: '↑ Sent', received: '↓ Received', system: '⚙ System' };
+  const baseLabels = { sent: '↑ Sent', received: '↓ Received', system: '⚙ System' };
+  const label = eventName
+    ? (type === 'sent' ? `↑ emit: ${esc(eventName)}` : `↓ on: ${esc(eventName)}`)
+    : baseLabels[type];
 
   let bodyHtml;
   if (type !== 'system') {
-    try {
-      const parsed = JSON.parse(raw);
-      bodyHtml = syntaxHL(JSON.stringify(parsed, null, 2));
-    } catch(_) {
-      bodyHtml = esc(raw);
-    }
+    try   { bodyHtml = syntaxHL(JSON.stringify(JSON.parse(raw), null, 2)); }
+    catch { bodyHtml = esc(raw); }
   } else {
     bodyHtml = esc(raw);
   }
 
   entry.innerHTML = `
     <div class="log-entry-hdr">
-      <span class="log-type">${labels[type]}</span>
+      <span class="log-type">${label}</span>
       <span class="log-time">${timeStr}</span>
     </div>
     <div class="log-body">${bodyHtml}</div>
@@ -952,33 +975,24 @@ function log(type, raw) {
   area.scrollTop = area.scrollHeight;
 }
 
-function clearLog() {
-  document.getElementById('logArea').innerHTML = '';
-}
+function clearLog() { document.getElementById('logArea').innerHTML = ''; }
 
 // ============================================================
 // Utilities
 // ============================================================
 function esc(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
 function escAttr(s) {
-  return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
-
 function syntaxHL(json) {
-  const e = esc(json);
-  return e.replace(
+  return esc(json).replace(
     /("(\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
     (m) => {
       if (/^"/.test(m)) return /:$/.test(m) ? `<span class="jk">${m}</span>` : `<span class="js">${m}</span>`;
-      if (/true|false/.test(m))  return `<span class="jb">${m}</span>`;
-      if (/null/.test(m))        return `<span class="jnull">${m}</span>`;
+      if (/true|false/.test(m)) return `<span class="jb">${m}</span>`;
+      if (/null/.test(m))       return `<span class="jnull">${m}</span>`;
       return `<span class="jn">${m}</span>`;
     }
   );
@@ -1001,28 +1015,16 @@ function fmtJSON() {
 // Cookies
 // ============================================================
 function renderCookies() {
-  const el = document.getElementById('cookieList');
+  const el  = document.getElementById('cookieList');
   const raw = document.cookie;
-
-  if (!raw.trim()) {
-    el.innerHTML = '<p class="empty-msg">No cookies</p>';
-    return;
-  }
-
+  if (!raw.trim()) { el.innerHTML = '<p class="empty-msg">No cookies</p>'; return; }
   const cookies = raw.split(';').map(c => {
     const idx = c.indexOf('=');
-    if (idx === -1) return { name: c.trim(), value: '' };
-    return {
-      name:  c.slice(0, idx).trim(),
-      value: c.slice(idx + 1).trim(),
-    };
+    return idx === -1
+      ? { name: c.trim(), value: '' }
+      : { name: c.slice(0, idx).trim(), value: c.slice(idx + 1).trim() };
   }).filter(c => c.name);
-
-  if (!cookies.length) {
-    el.innerHTML = '<p class="empty-msg">No cookies</p>';
-    return;
-  }
-
+  if (!cookies.length) { el.innerHTML = '<p class="empty-msg">No cookies</p>'; return; }
   el.innerHTML = cookies.map(c => `
     <div class="cookie-item" title="${escAttr(c.name)}=${escAttr(c.value)}">
       <div class="cookie-name">${esc(c.name)}</div>
@@ -1039,13 +1041,9 @@ function pushHistory(url) {
   localStorage.setItem('wst-history', JSON.stringify(history));
   renderHistory();
 }
-
 function renderHistory() {
   const el = document.getElementById('historyList');
-  if (!history.length) {
-    el.innerHTML = '<p class="empty-msg">No history yet</p>';
-    return;
-  }
+  if (!history.length) { el.innerHTML = '<p class="empty-msg">No history yet</p>'; return; }
   el.innerHTML = history.map((url, i) => `
     <div class="history-item" onclick="loadHistory(${i})">
       <span class="history-url" title="${escAttr(url)}">${esc(url)}</span>
@@ -1053,16 +1051,8 @@ function renderHistory() {
     </div>
   `).join('');
 }
-
-function loadHistory(i) {
-  document.getElementById('urlInput').value = history[i];
-}
-
-function delHistory(i) {
-  history.splice(i, 1);
-  localStorage.setItem('wst-history', JSON.stringify(history));
-  renderHistory();
-}
+function loadHistory(i) { document.getElementById('urlInput').value = history[i]; }
+function delHistory(i)  { history.splice(i,1); localStorage.setItem('wst-history', JSON.stringify(history)); renderHistory(); }
 
 // ============================================================
 // Templates
@@ -1072,13 +1062,11 @@ function showSave() {
   document.getElementById('actionBtns').style.display = 'none';
   document.getElementById('saveNameInput').focus();
 }
-
 function cancelSave() {
   document.getElementById('saveInline').classList.add('hidden');
   document.getElementById('actionBtns').style.display = '';
   document.getElementById('saveNameInput').value = '';
 }
-
 function confirmSave() {
   const name = document.getElementById('saveNameInput').value.trim();
   if (!name) { document.getElementById('saveNameInput').focus(); return; }
@@ -1090,13 +1078,9 @@ function confirmSave() {
   cancelSave();
   renderTemplates();
 }
-
 function renderTemplates() {
   const el = document.getElementById('templateList');
-  if (!templates.length) {
-    el.innerHTML = '<p class="empty-msg">No templates yet</p>';
-    return;
-  }
+  if (!templates.length) { el.innerHTML = '<p class="empty-msg">No templates yet</p>'; return; }
   el.innerHTML = templates.map((t, i) => `
     <div class="tpl-item" onclick="loadTemplate(${i})">
       <div class="tpl-info">
@@ -1107,15 +1091,12 @@ function renderTemplates() {
     </div>
   `).join('');
 }
-
 function loadTemplate(i) {
-  const t = templates[i];
-  document.getElementById('msgInput').value = t.message;
-  document.getElementById('msgType').value  = t.type || 'text';
+  document.getElementById('msgInput').value = templates[i].message;
+  document.getElementById('msgType').value  = templates[i].type || 'text';
 }
-
 function delTemplate(i) {
-  templates.splice(i, 1);
+  templates.splice(i,1);
   localStorage.setItem('wst-templates', JSON.stringify(templates));
   renderTemplates();
 }
@@ -1127,13 +1108,11 @@ function startAutoSend() {
   const ms = parseInt(document.getElementById('intervalInput').value, 10);
   if (isNaN(ms) || ms < 100) {
     log('system', 'インターバルは 100ms 以上を指定してください');
-    document.getElementById('autoSendCheck').checked = false;
-    return;
+    document.getElementById('autoSendCheck').checked = false; return;
   }
   if (connStatus !== 'open') {
     log('system', '接続されていません');
-    document.getElementById('autoSendCheck').checked = false;
-    return;
+    document.getElementById('autoSendCheck').checked = false; return;
   }
   log('system', `Auto send started (every ${ms}ms)`);
   document.getElementById('autoSendRunning').style.display = 'inline';
@@ -1142,19 +1121,15 @@ function startAutoSend() {
     sendMsg();
   }, ms);
 }
-
 function stopAutoSend(addLogEntry = true) {
   if (!intervalTimer) return;
-  clearInterval(intervalTimer);
-  intervalTimer = null;
+  clearInterval(intervalTimer); intervalTimer = null;
   document.getElementById('autoSendRunning').style.display = 'none';
   document.getElementById('autoSendCheck').checked = false;
   if (addLogEntry) log('system', 'Auto send stopped');
 }
-
 document.getElementById('autoSendCheck').addEventListener('change', function() {
-  if (this.checked) startAutoSend();
-  else stopAutoSend();
+  if (this.checked) startAutoSend(); else stopAutoSend();
 });
 
 // ============================================================
@@ -1163,14 +1138,15 @@ document.getElementById('autoSendCheck').addEventListener('change', function() {
 document.getElementById('msgInput').addEventListener('keydown', (e) => {
   if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); sendMsg(); }
 });
-
 document.getElementById('saveNameInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter')  confirmSave();
   if (e.key === 'Escape') cancelSave();
 });
-
 document.getElementById('urlInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') toggleConn();
+});
+document.getElementById('subscribeEvent').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') doSubscribe();
 });
 </script>
 </body>

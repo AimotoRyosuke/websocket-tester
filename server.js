@@ -46,6 +46,17 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Serve socket.io client bundle
+  if (req.url === '/socket.io.min.js') {
+    const sioPath = path.join(__dirname, 'node_modules', 'socket.io-client', 'dist', 'socket.io.min.js');
+    fs.readFile(sioPath, (err, data) => {
+      if (err) { res.writeHead(404); res.end('Not found'); return; }
+      res.writeHead(200, { 'Content-Type': 'application/javascript', 'Cache-Control': 'max-age=86400' });
+      res.end(data);
+    });
+    return;
+  }
+
   // Serve HTML with live-reload script injected
   fs.readFile(HTML_PATH, 'utf8', (err, html) => {
     if (err) {
